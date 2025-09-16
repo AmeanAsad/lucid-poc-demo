@@ -1,0 +1,15 @@
+{
+  "name": "lunal-attestation",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "lunal_attestation_bg.wasm",
+    "lunal_attestation.js",
+    "lunal_attestation.d.ts"
+  ],
+  "main": "lunal_attestation.js",
+  "types": "lunal_attestation.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
