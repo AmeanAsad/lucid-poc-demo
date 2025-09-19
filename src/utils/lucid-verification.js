@@ -7,7 +7,7 @@ import { getWasmModule } from "./wasm-loader.js";
  * @returns {Promise<Object>} Location data from the API
  */
 export async function fetchLocationData(nonce) {
-  const baseUrl = "https://lucid-verification-demo.lunal.dev";
+  const baseUrl = "https://lucid-verification-dev.lunal.dev";
   const token = "test-temp-token";
   try {
     const response = await fetch(`${baseUrl}/api/v1/token`, {
