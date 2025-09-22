@@ -2,7 +2,7 @@ import { getWasmModule } from "./wasm-loader";
 
 export async function fetchAttestation() {
   const response = await fetch(
-    "https://lucid-verification-demo.lunal.dev/health"
+    "https://lucid-verification-dev.lunal.dev/health"
   );
   const attestationReport = response.headers.get("attestation-report");
   return attestationReport;

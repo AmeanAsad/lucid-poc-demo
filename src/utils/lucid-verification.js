@@ -1,12 +1,6 @@
-import { getWasmModule } from "./wasm-loader.js";
+import jwt from "jsonwebtoken";
 
-/**
- * Fetch location data from the Lucid verification API
- * @param {string} nonce - The nonce extracted from report data
- * @param {string} bearerToken - Bearer token for API authentication
- * @returns {Promise<Object>} Location data from the API
- */
-export async function fetchLocationData(nonce) {
+export async function fetchLocationData(receivedToken) {
   const baseUrl = "https://lucid-verification-dev.lunal.dev";
   const token = "test-temp-token";
   try {
@@ -17,7 +11,7 @@ export async function fetchLocationData(nonce) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        nonce: nonce,
+        hashed_token: receivedToken,
       }),
     });
 
@@ -26,10 +20,17 @@ export async function fetchLocationData(nonce) {
     }
 
     const locationData = await response.json();
+    const locationToken = locationData?.token;
+
+    if (locationToken) {
+      const verifiedData = await verifyToken(locationToken, receivedToken);
+      console.log("Verified token data:", verifiedData);
+      return verifiedData;
+    }
 
     // Print the location data to console
     console.log("Location Data Retrieved:");
-    console.log(JSON.stringify(locationData, null, 2));
+    console.log(locationData);
 
     return locationData;
   } catch (error) {
@@ -38,35 +39,36 @@ export async function fetchLocationData(nonce) {
   }
 }
 
-/**
- * Decode hex-encoded report data to extract the nonce
- * @param {string} hexString - Hex-encoded report data
- * @returns {string|null} Decoded nonce or null if decoding fails
- */
-export function decodeReportData(hexString) {
-  try {
-    // Convert hex string back to bytes
-    const bytes = [];
-    for (let i = 0; i < hexString.length; i += 2) {
-      bytes.push(parseInt(hexString.substring(i, i + 2), 16));
-    }
+export async function verifyToken(token, receivedToken) {
+  // Compute SHA256 hash of the token
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashedToken = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
-    // Convert bytes to string and remove null byte padding
-    let nonce = String.fromCharCode(...bytes);
+  console.log("Token SHA256 hash:", hashedToken);
 
-    // Remove trailing null bytes (padding)
-    nonce = nonce.replace(/\0+$/, "");
-
-    return nonce;
-  } catch (error) {
-    console.error("Error decoding report data:", error);
-    return null;
+  // Verify the hashed token matches the received token
+  if (hashedToken !== receivedToken) {
+    throw new Error(
+      "Token verification failed: hashed token does not match received token"
+    );
   }
+
+  console.log("Token hash verification successful");
+
+  const decodedToken = jwt.decode(token);
+  console.log("Decoded JWT:", decodedToken);
+
+  return decodedToken;
 }
 
 export async function extractNonce(attestationReport) {
   if (attestationReport.success && attestationReport.report_data) {
-    const decodedNonce = decodeReportData(attestationReport.report_data);
+    const decodedNonce = attestationReport.report_data;
     return decodedNonce;
   }
   return null;
